@@ -82,8 +82,8 @@ This context will be included in extraction/grading requests and cache keys. It 
 
 The deployment target is Cloudflare Workers. Before deploying:
 
-1. Use a Workers Paid plan, as required by the architecture.
-2. Review `wrangler.jsonc` for the Worker name, compatibility settings, and bindings. Keep credentials out of this file; the dashboard flow below can supply runtime configuration.
+1. Start on the Cloudflare Workers Free plan. This project intentionally does not set `limits.cpu_ms`, because custom CPU limits require a paid plan.
+2. Review `wrangler.jsonc` for the Worker name, compatibility settings, and bindings. It intentionally does not contain runtime variables or secrets, so a connected Cloudflare build will not overwrite dashboard-managed values.
 3. Configure runtime variables and secrets using either Wrangler or the Cloudflare dashboard. Never commit a secret.
 
 ### Deploy and configure through the Cloudflare dashboard
@@ -124,6 +124,8 @@ The deployment target is Cloudflare Workers. Before deploying:
 5. Select **Deploy** in the variables panel to apply the runtime configuration. Secret values are hidden after they are saved.
 6. If you use Cloudflare’s connected-repository build service, also open **Settings** → **Build** → **Build Variables and Secrets** and add any values needed at build time. This project does not currently need the private runtime secrets during `next build`; do not copy `GEMINI_API_KEY`, `SESSION_HMAC_SECRET`, or `TURNSTILE_SECRET_KEY` there unless a future build-time feature explicitly needs one.
 7. Create the configured AI Gateway, Turnstile widget, rate limits, Durable Object bindings, and WAF rule before enabling model-backed routes. See [ARCHITECTURE.md](ARCHITECTURE.md).
+
+The current UI-first starter is compatible with the Free plan. When model-backed API routes are introduced, profile each route against the Free plan CPU and Worker-size limits before enabling it in production; move byte-heavy image work to the browser as designed, and upgrade only if measured limits require it.
 
 Cloudflare distinguishes variables from secrets: both are available to the Worker at runtime, but variables can be viewed in the dashboard while secret values cannot. Use **Secret** for every credential, key, token, or signing value. [Cloudflare’s variables documentation](https://developers.cloudflare.com/workers/configuration/environment-variables/) and [secrets documentation](https://developers.cloudflare.com/workers/configuration/secrets/) describe the current dashboard flow.
 
