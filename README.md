@@ -83,8 +83,53 @@ This context will be included in extraction/grading requests and cache keys. It 
 The deployment target is Cloudflare Workers. Before deploying:
 
 1. Use a Workers Paid plan, as required by the architecture.
-2. Configure `wrangler.jsonc` with real account and origin values.
-3. Set secrets only through Wrangler—never commit them:
+2. Review `wrangler.jsonc` for the Worker name, compatibility settings, and bindings. Keep credentials out of this file; the dashboard flow below can supply runtime configuration.
+3. Configure runtime variables and secrets using either Wrangler or the Cloudflare dashboard. Never commit a secret.
+
+### Deploy and configure through the Cloudflare dashboard
+
+1. Push this repository to GitHub or GitLab.
+2. In Cloudflare, open **Workers & Pages** → **Create application** → **Import a repository**, connect the repository, and deploy it as a Workers application.
+3. In the Worker, open **Settings** → **Variables and Secrets** → **Add**. Add the following as **plain-text variables**:
+
+   | Variable | Value |
+   | --- | --- |
+   | `AI_GATEWAY_ACCOUNT_ID` | Your Cloudflare account ID |
+   | `AI_GATEWAY_NAME` | `vedaai-grader-gw` or your gateway name |
+   | `GEMINI_MODEL` | Your selected Gemini model ID |
+   | `PROMPT_VERSION` | A version string, for example `2026-08-30.1` |
+   | `ALLOWED_ORIGIN` | The final app origin, for example `https://grader.example.com` |
+   | `MAX_PAGES_PER_SESSION` | `20` |
+   | `MAX_CALLS_PER_SESSION` | `15` |
+   | `GLOBAL_DAILY_CALL_BUDGET` | Your daily model-call limit, for example `4000` |
+
+4. In the same panel, add the following as **Secret** values—not plain-text variables:
+
+   | Secret | Value |
+   | --- | --- |
+   | `GEMINI_API_KEY` | Gemini API key |
+   | `SESSION_HMAC_SECRET` | A randomly generated signing secret |
+   | `TURNSTILE_SECRET_KEY` | Turnstile server-side secret |
+
+   Generate `SESSION_HMAC_SECRET` locally with OpenSSL, then paste the output as its secret value:
+
+   ```bash
+   openssl rand -hex 32
+   ```
+
+   This produces a 64-character hexadecimal, cryptographically random value. Generate it once for production, store it only in Cloudflare as a Secret, and rotate it deliberately—rotating it invalidates existing signed sessions. Do not use a memorable phrase or an API key in its place.
+
+   `GEMINI_API_KEY` is created in Google AI Studio (or the Gemini project/provider you use). `TURNSTILE_SECRET_KEY` is shown when you create a Turnstile widget in Cloudflare; use its **secret key**, never its site key. The Turnstile site key is public and may be configured separately as `NEXT_PUBLIC_TURNSTILE_SITE_KEY` when the widget is implemented.
+
+5. Select **Deploy** in the variables panel to apply the runtime configuration. Secret values are hidden after they are saved.
+6. If you use Cloudflare’s connected-repository build service, also open **Settings** → **Build** → **Build Variables and Secrets** and add any values needed at build time. This project does not currently need the private runtime secrets during `next build`; do not copy `GEMINI_API_KEY`, `SESSION_HMAC_SECRET`, or `TURNSTILE_SECRET_KEY` there unless a future build-time feature explicitly needs one.
+7. Create the configured AI Gateway, Turnstile widget, rate limits, Durable Object bindings, and WAF rule before enabling model-backed routes. See [ARCHITECTURE.md](ARCHITECTURE.md).
+
+Cloudflare distinguishes variables from secrets: both are available to the Worker at runtime, but variables can be viewed in the dashboard while secret values cannot. Use **Secret** for every credential, key, token, or signing value. [Cloudflare’s variables documentation](https://developers.cloudflare.com/workers/configuration/environment-variables/) and [secrets documentation](https://developers.cloudflare.com/workers/configuration/secrets/) describe the current dashboard flow.
+
+### CLI alternative
+
+Set secrets through Wrangler—never commit them:
 
    ```bash
    wrangler secret put GEMINI_API_KEY
@@ -92,7 +137,7 @@ The deployment target is Cloudflare Workers. Before deploying:
    wrangler secret put TURNSTILE_SECRET_KEY
    ```
 
-4. Configure the AI Gateway spend cap, rate limits, Turnstile, Durable Object, and WAF rule described in [ARCHITECTURE.md](ARCHITECTURE.md).
+Configure the AI Gateway spend cap, rate limits, Turnstile, Durable Object, and WAF rule described in [ARCHITECTURE.md](ARCHITECTURE.md).
 
 `.dev.vars`, `.open-next`, and `.wrangler` are ignored by Git. Do not use `NEXT_PUBLIC_` for any secret.
 
