@@ -1,0 +1,20 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "vedaai-grader",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2026-08-26",
+  "compatibility_flags": ["nodejs_compat"],
+  "assets": { "directory": ".open-next/assets", "binding": "ASSETS" },
+  "observability": { "enabled": true },
+  "limits": { "cpu_ms": 5000 },
+  "vars": {
+    "AI_GATEWAY_ACCOUNT_ID": "<account-id>",
+    "AI_GATEWAY_NAME": "vedaai-grader-gw",
+    "GEMINI_MODEL": "gemini-flash-latest",
+    "PROMPT_VERSION": "2026-08-26.1",
+    "ALLOWED_ORIGIN": "https://grader.vedaai.app",
+    "MAX_PAGES_PER_SESSION": "20",
+    "MAX_CALLS_PER_SESSION": "15",
+    "GLOBAL_DAILY_CALL_BUDGET": "4000"
+  }
+}
